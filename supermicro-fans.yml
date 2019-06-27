@@ -20,8 +20,18 @@
         name: ipmitool
         state: latest
 
-    - name: disable bmc fan control (fans will run a full speed for a few seconds)
+    - name: get bmc fan mode
       when: ansible_facts['system_vendor'] == 'Supermicro'
+      command: ipmitool raw 0x30 0x45 0x00
+      register: fan_mode
+    
+    - name: set bmc fan mode fact
+      set_fact:
+        fan_mode: "{{ fan_mode.stdout | trim }}"
+      when: ansible_facts['system_vendor'] == 'Supermicro'
+    
+    - name: set bmc fan mode to full speed (to enable manual control)
+      when: ansible_facts['system_vendor'] == 'Supermicro' and fan_mode != '01'
       shell: ipmitool raw 0x30 0x45 0x01 0x01
 
     - name: set fans in system zone to 25%
