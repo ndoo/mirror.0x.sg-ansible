@@ -1,0 +1,19 @@
+---
+- hosts: osds
+  gather_facts: no
+  tasks:
+
+    - name: get connected interface nmcli connection name
+      shell: nmcli device | awk -F'  +' '/connected/ {print $4}'
+      register: iface_name
+    
+    - name: set jumbo mtu
+      shell: nmcli connection modify "{{ iface_name.stdout_lines[0] | trim }}" 802-3-ethernet.mtu 9000
+
+    - name: make new connection settings take effect
+      shell: nmcli connection up id "{{ iface_name.stdout_lines[0] | trim }}"
+      register: apply_results
+
+    - debug:
+        msg: apply_results {{ apply_results }}
+

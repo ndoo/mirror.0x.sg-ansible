@@ -1,0 +1,8 @@
+---
+- hosts: mgrs
+  tasks:
+    - firewalld:
+        port: 8080/tcp
+        permanent: yes
+        immediate: yes
+        state: enabled

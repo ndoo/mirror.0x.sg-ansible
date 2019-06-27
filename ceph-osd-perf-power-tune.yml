@@ -1,0 +1,13 @@
+---
+- hosts: osds
+  gather_facts: no
+  tasks:
+
+    - name: set tuned profile to powersave
+      shell: tuned-adm profile powersave
+
+    - name: set cpupower perf bias for maximum efficiency
+      shell: cpupower set -b 15
+
+    - name: set governor to powersave and restrict max frequency
+      shell: cpupower frequency-set -g powersave -d 800MHz -r
