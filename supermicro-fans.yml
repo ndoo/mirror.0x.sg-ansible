@@ -9,22 +9,18 @@
         gather_subset:
           - hardware
 
-    - name: gather package facts to determine if ipmitool is installed
+    - name: ensure ipmitool is installed
       when: ansible_facts['system_vendor'] == 'Supermicro'
-      package_facts:
-        manager: auto
-
-    - name: install ipmitool
-      when: ansible_facts['system_vendor'] == 'Supermicro' and ansible_facts.packages["ipmitool"] is undefined
       yum:
         name: ipmitool
-        state: latest
+        state: present
 
     - name: get bmc fan mode
       when: ansible_facts['system_vendor'] == 'Supermicro'
       command: ipmitool raw 0x30 0x45 0x00
+      changed_when: false
       register: fan_mode
-    
+
     - name: set bmc fan mode fact
       set_fact:
         fan_mode: "{{ fan_mode.stdout | trim }}"
@@ -38,6 +34,6 @@
       when: ansible_facts['system_vendor'] == 'Supermicro'
       shell: ipmitool raw 0x30 0x70 0x66 0x01 0x00 0x19
 
-    - name: set fans in peripheral zone to 50%
+    - name: set fans in peripheral zone to 25%
       when: ansible_facts['system_vendor'] == 'Supermicro'
-      shell: ipmitool raw 0x30 0x70 0x66 0x01 0x01 0x32
+      shell: ipmitool raw 0x30 0x70 0x66 0x01 0x01 0x19
