@@ -13,14 +13,19 @@
         name:
           - ipmitool
           - watchdog
-          - smartmontools
-          - cpufrequtils
+          - tuned
         state: present
 
     - name: ensure ipmi_watchdog kernel module is loaded
       modprobe:
         name: ipmi_watchdog
         state: present
+
+    - name: ensure ipmi_watchdog kernel module loads at boot
+      lineinfile:
+        dest: /etc/modules-load.d/ipmi_watchdog.conf
+        create: yes
+        line: ipmi_watchdog
 
     - name: ensure watchdog-device is set to /dev/watchdog in watchdog.conf
       lineinfile:
@@ -39,51 +44,11 @@
 
   tasks:
 
-    - name: ensure powersave-custom tuned profile folder exists
-      file: 
-        path: /usr/lib/tuned/powersave-custom
-        state: directory
-        recurse: yes
-
-    - name: ensure powersave-custom tuned.conf cpu, scsi_host sections exist
-      lineinfile:
-        path: /usr/lib/tuned/powersave-custom/tuned.conf
-        regexp: "{{ item.regexp }}"
-        line: "{{ item.line }}"
-        create: yes
-      with_items:
-        - {regexp: '\[cpu\]', line: "[cpu]"}
-        - {regexp: '\[scsi_host\]', line: "[scsi_host]"}
-
-    - name: ensure powersave-custom tuned.conf cpu is set to powersave
-      lineinfile:
-        path: /usr/lib/tuned/powersave-custom/tuned.conf
-        regexp: "{{ item.key }}="
-        line: "{{ item.key }}={{ item.value }}"
-        insertafter: '\[cpu\]'
-      with_items:
-        - {key: governor, value: powersave}
-        - {key: energy_perf_bias, value: powersave}
-
     - name: get active tuned profile
       shell: "tuned-adm profile | awk '/Current active profile: / {print $4}'"
       changed_when: false
       register: tuned_profile
 
-    - name: ensure active tuned profile is powersave-custom
-      shell: tuned-adm profile powersave-custom
-      when: tuned_profile.stdout != "powersave-custom"
-
-    - name: get cpu lowest supported hardware frequency
-      shell: cpupower frequency-info|awk '/hardware limits/ {print $3 $4}'
-      changed_when: false
-      register: cpufreq_hwmin
-
-    - name: get current cpu max frequency
-      shell: cpupower frequency-info | awk '/within/ {print $7 $8}'
-      changed_when: false
-      register: cpufreq_max
-
-    - name: set cpu max frequency to lowest supported hardware frequency
-      shell: "cpupower frequency-set -d {{ cpufreq_hwmin.stdout }} -r"
-      when: cpufreq_max.stdout != cpufreq_hwmin.stdout
+    - name: ensure active tuned profile is network-throughput
+      shell: tuned-adm profile network-throughput
+      when: tuned_profile.stdout != "network-throughput"
